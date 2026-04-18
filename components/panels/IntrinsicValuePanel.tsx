@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useAppState } from "@/state/AppStateContext";
 import { useQuote } from "@/hooks/useQuote";
 import { useFundamentals } from "@/hooks/useFundamentals";
-import { reverseDCF, forwardDCF, sensitivityMatrix } from "@/lib/dcf";
+import { reverseDCF, forwardDCF, sensitivityMatrix, calculateWACC } from "@/lib/dcf";
 import { SensitivityTable } from "@/components/SensitivityTable";
 import { fmt } from "@/lib/format";
 
@@ -37,6 +37,35 @@ export function IntrinsicValuePanel() {
     const years = fcfHistory.length - 1;
     return Math.pow(last / first, 1 / years) - 1;
   }, [fundamentals?.annualFCF]);
+
+  // 3-year earnings (net income) CAGR
+  const earningsGrowth3Y = useMemo(() => {
+    const history = fundamentals?.annualNetIncome;
+    if (!history || history.length < 2) return null;
+    // Use the 4 most recent points (3 growth periods)
+    const recent = history.slice(-4);
+    if (recent.length < 2) return null;
+    const first = recent[0].netIncome;
+    const last = recent[recent.length - 1].netIncome;
+    if (first <= 0 || last <= 0) return null;
+    const years = recent.length - 1;
+    return Math.pow(last / first, 1 / years) - 1;
+  }, [fundamentals?.annualNetIncome]);
+
+  // WACC
+  const waccResult = useMemo(() => {
+    if (
+      quote?.marketCap == null ||
+      quote?.beta == null ||
+      fundamentals?.totalDebt == null
+    )
+      return null;
+    return calculateWACC(
+      quote.marketCap,
+      fundamentals.totalDebt,
+      quote.beta
+    );
+  }, [quote?.marketCap, quote?.beta, fundamentals?.totalDebt]);
 
   // Reverse DCF result
   const reverseResult = useMemo(() => {
@@ -172,20 +201,14 @@ export function IntrinsicValuePanel() {
           </div>
 
           {/* Key assumptions */}
-          <div className="grid grid-cols-3 gap-3 text-xs text-text-secondary">
-            <div>
-              <span className="opacity-60">Trailing FCF</span>
-              <div className="text-text-primary">{fmt(trailingFCF, { compact: true })}</div>
-            </div>
-            <div>
-              <span className="opacity-60">Market Cap</span>
-              <div className="text-text-primary">{fmt(marketCap, { compact: true })}</div>
-            </div>
-            <div>
-              <span className="opacity-60">FCF Margin</span>
-              <div className="text-text-primary">{fmt(fcfMargin, { pct: true })}</div>
-            </div>
-          </div>
+          <ReferenceGrid
+            trailingFCF={trailingFCF}
+            secondLabel="Market Cap"
+            secondValue={fmt(marketCap, { compact: true })}
+            fcfMargin={fcfMargin}
+            earningsGrowth3Y={earningsGrowth3Y}
+            wacc={waccResult?.wacc ?? null}
+          />
 
           {/* Sensitivity table */}
           {matrix.length > 0 && currentPrice != null && (
@@ -271,20 +294,14 @@ export function IntrinsicValuePanel() {
           </div>
 
           {/* Key assumptions */}
-          <div className="grid grid-cols-3 gap-3 text-xs text-text-secondary">
-            <div>
-              <span className="opacity-60">Trailing FCF</span>
-              <div className="text-text-primary">{fmt(trailingFCF, { compact: true })}</div>
-            </div>
-            <div>
-              <span className="opacity-60">Shares Outstanding</span>
-              <div className="text-text-primary">{fmt(sharesOutstanding, { compact: true })}</div>
-            </div>
-            <div>
-              <span className="opacity-60">FCF Margin</span>
-              <div className="text-text-primary">{fmt(fcfMargin, { pct: true })}</div>
-            </div>
-          </div>
+          <ReferenceGrid
+            trailingFCF={trailingFCF}
+            secondLabel="Shares Out"
+            secondValue={fmt(sharesOutstanding, { compact: true })}
+            fcfMargin={fcfMargin}
+            earningsGrowth3Y={earningsGrowth3Y}
+            wacc={waccResult?.wacc ?? null}
+          />
 
           {/* Sensitivity table */}
           {matrix.length > 0 && currentPrice != null && (
@@ -292,6 +309,40 @@ export function IntrinsicValuePanel() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function ReferenceGrid({
+  trailingFCF,
+  secondLabel,
+  secondValue,
+  fcfMargin,
+  earningsGrowth3Y,
+  wacc,
+}: {
+  trailingFCF: number | null;
+  secondLabel: string;
+  secondValue: string;
+  fcfMargin: number | null;
+  earningsGrowth3Y: number | null;
+  wacc: number | null;
+}) {
+  const items: { label: string; value: string }[] = [
+    { label: "Trailing FCF", value: fmt(trailingFCF, { compact: true }) },
+    { label: secondLabel, value: secondValue },
+    { label: "FCF Margin", value: fmt(fcfMargin, { pct: true }) },
+    { label: "3Y EPS Growth", value: fmt(earningsGrowth3Y, { pct: true }) },
+    { label: "WACC", value: fmt(wacc, { pct: true }) },
+  ];
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 text-xs text-text-secondary border-t border-border pt-3">
+      {items.map((item) => (
+        <div key={item.label}>
+          <span className="opacity-60">{item.label}</span>
+          <div className="text-text-primary">{item.value}</div>
+        </div>
+      ))}
     </div>
   );
 }

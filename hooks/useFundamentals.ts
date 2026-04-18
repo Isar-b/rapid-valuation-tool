@@ -10,6 +10,10 @@ export interface FundamentalsData {
     operatingCashFlow: number | null;
     capitalExpenditure: number | null;
   }[];
+  annualNetIncome: {
+    date: string;
+    netIncome: number;
+  }[];
   trailingFCF: number | null;
   trailingRevenue: number | null;
   totalAssets: number | null;

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
 
     const noValidate = { validateResult: false } as const;
-    const [cashFlowRaw, balanceSheetRaw, trailingRaw] = await Promise.all([
+    const [cashFlowRaw, balanceSheetRaw, financialsRaw, trailingRaw] = await Promise.all([
       yf.fundamentalsTimeSeries(symbol, {
         period1: fiveYearsAgo,
         type: "annual",
@@ -32,6 +32,11 @@ export async function GET(request: NextRequest) {
         module: "balance-sheet",
       }, noValidate),
       yf.fundamentalsTimeSeries(symbol, {
+        period1: fiveYearsAgo,
+        type: "annual",
+        module: "financials",
+      }, noValidate),
+      yf.fundamentalsTimeSeries(symbol, {
         period1: twoYearsAgo,
         type: "trailing",
         module: "all",
@@ -40,6 +45,7 @@ export async function GET(request: NextRequest) {
 
     const cashFlow = cashFlowRaw as FundamentalsTimeSeriesResult[];
     const balanceSheet = balanceSheetRaw as FundamentalsTimeSeriesResult[];
+    const financials = financialsRaw as FundamentalsTimeSeriesResult[];
     const trailing = trailingRaw as FundamentalsTimeSeriesResult[];
 
     // Extract annual cash flow history
@@ -51,6 +57,14 @@ export async function GET(request: NextRequest) {
         freeCashFlow: (r as AnyRecord).freeCashFlow as number,
         operatingCashFlow: ((r as AnyRecord).operatingCashFlow as number) ?? null,
         capitalExpenditure: ((r as AnyRecord).capitalExpenditure as number) ?? null,
+      }));
+
+    // Extract annual net income history (from income statement)
+    const annualNetIncome = financials
+      .filter((r) => (r as AnyRecord).netIncome != null)
+      .map((r) => ({
+        date: r.date,
+        netIncome: (r as AnyRecord).netIncome as number,
       }));
 
     // Extract balance sheet data (most recent)
@@ -66,6 +80,7 @@ export async function GET(request: NextRequest) {
     const data = {
       symbol,
       annualFCF,
+      annualNetIncome,
       trailingFCF: (latestTrailing.freeCashFlow as number) ?? null,
       trailingRevenue: (latestTrailing.totalRevenue as number) ?? null,
       totalAssets: (latestBS.totalAssets as number) ?? null,

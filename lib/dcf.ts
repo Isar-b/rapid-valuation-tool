@@ -22,6 +22,35 @@ export interface SensitivityCell {
   fairValue: number;
 }
 
+export interface WACCResult {
+  wacc: number;
+  costOfEquity: number;
+  weightEquity: number;
+  weightDebt: number;
+}
+
+/**
+ * Calculate WACC using CAPM for cost of equity.
+ * Defaults use US large-cap assumptions as of 2026.
+ */
+export function calculateWACC(
+  marketCap: number,
+  totalDebt: number,
+  beta: number,
+  riskFreeRate: number = 0.045,
+  marketRiskPremium: number = 0.055,
+  costOfDebt: number = 0.05,
+  taxRate: number = 0.21
+): WACCResult {
+  const costOfEquity = riskFreeRate + beta * marketRiskPremium;
+  const totalCapital = marketCap + (totalDebt > 0 ? totalDebt : 0);
+  const weightEquity = totalCapital > 0 ? marketCap / totalCapital : 1;
+  const weightDebt = totalCapital > 0 ? totalDebt / totalCapital : 0;
+  const wacc =
+    weightEquity * costOfEquity + weightDebt * costOfDebt * (1 - taxRate);
+  return { wacc, costOfEquity, weightEquity, weightDebt };
+}
+
 /**
  * Compute NPV of projected FCFs + terminal value for a given growth rate.
  */
