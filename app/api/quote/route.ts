@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         "defaultKeyStatistics",
         "financialData",
         "recommendationTrend",
+        "earningsTrend",
       ],
     });
 
@@ -34,6 +35,23 @@ export async function GET(request: NextRequest) {
     const recTrend = (
       ((result.recommendationTrend as AnyRecord)?.trend as AnyRecord[]) || []
     )[0] as AnyRecord | undefined;
+
+    // Extract analyst-projected 5-year earnings growth from earningsTrend
+    const earningsTrendArr = ((result.earningsTrend as AnyRecord)?.trend as AnyRecord[]) || [];
+    const fiveYearEstimate = earningsTrendArr.find(
+      (t) => t.period === "+5y"
+    ) as AnyRecord | undefined;
+    const nextYearEstimate = earningsTrendArr.find(
+      (t) => t.period === "+1y"
+    ) as AnyRecord | undefined;
+    const projectedEarningsGrowth5Y =
+      ((fiveYearEstimate?.growth as AnyRecord)?.raw as number) ??
+      (fiveYearEstimate?.growth as number) ??
+      null;
+    const projectedEarningsGrowthNextYear =
+      ((nextYearEstimate?.growth as AnyRecord)?.raw as number) ??
+      (nextYearEstimate?.growth as number) ??
+      null;
 
     const data = {
       symbol,
@@ -61,6 +79,8 @@ export async function GET(request: NextRequest) {
       epsForward: (keyStats.forwardEps as number) ?? null,
       revenueGrowth: (financial.revenueGrowth as number) ?? null,
       earningsGrowth: (financial.earningsGrowth as number) ?? null,
+      projectedEarningsGrowth5Y,
+      projectedEarningsGrowthNextYear,
       targetMeanPrice: (financial.targetMeanPrice as number) ?? null,
       recommendationKey: (financial.recommendationKey as string) ?? null,
       analystCount: recTrend

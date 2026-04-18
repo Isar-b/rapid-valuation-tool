@@ -25,6 +25,8 @@ export interface QuoteData {
   epsForward: number | null;
   revenueGrowth: number | null;
   earningsGrowth: number | null;
+  projectedEarningsGrowth5Y: number | null;
+  projectedEarningsGrowthNextYear: number | null;
   targetMeanPrice: number | null;
   recommendationKey: string | null;
   analystCount: number | null;

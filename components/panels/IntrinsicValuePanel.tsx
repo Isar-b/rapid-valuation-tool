@@ -207,6 +207,11 @@ export function IntrinsicValuePanel() {
             secondValue={fmt(marketCap, { compact: true })}
             fcfMargin={fcfMargin}
             earningsGrowth3Y={earningsGrowth3Y}
+            projectedEarningsGrowth={
+              quote?.projectedEarningsGrowth5Y ??
+              quote?.projectedEarningsGrowthNextYear ??
+              null
+            }
             wacc={waccResult?.wacc ?? null}
           />
 
@@ -300,6 +305,11 @@ export function IntrinsicValuePanel() {
             secondValue={fmt(sharesOutstanding, { compact: true })}
             fcfMargin={fcfMargin}
             earningsGrowth3Y={earningsGrowth3Y}
+            projectedEarningsGrowth={
+              quote?.projectedEarningsGrowth5Y ??
+              quote?.projectedEarningsGrowthNextYear ??
+              null
+            }
             wacc={waccResult?.wacc ?? null}
           />
 
@@ -319,6 +329,7 @@ function ReferenceGrid({
   secondValue,
   fcfMargin,
   earningsGrowth3Y,
+  projectedEarningsGrowth,
   wacc,
 }: {
   trailingFCF: number | null;
@@ -326,6 +337,7 @@ function ReferenceGrid({
   secondValue: string;
   fcfMargin: number | null;
   earningsGrowth3Y: number | null;
+  projectedEarningsGrowth: number | null;
   wacc: number | null;
 }) {
   const items: { label: string; value: string }[] = [
@@ -333,10 +345,11 @@ function ReferenceGrid({
     { label: secondLabel, value: secondValue },
     { label: "FCF Margin", value: fmt(fcfMargin, { pct: true }) },
     { label: "3Y EPS Growth", value: fmt(earningsGrowth3Y, { pct: true }) },
+    { label: "Analyst EPS Growth", value: fmt(projectedEarningsGrowth, { pct: true }) },
     { label: "WACC", value: fmt(wacc, { pct: true }) },
   ];
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 text-xs text-text-secondary border-t border-border pt-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 text-xs text-text-secondary border-t border-border pt-3">
       {items.map((item) => (
         <div key={item.label}>
           <span className="opacity-60">{item.label}</span>
