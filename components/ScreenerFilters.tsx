@@ -80,16 +80,6 @@ export function ScreenerFiltersPanel({ filters, onChange }: ScreenerFiltersProps
           onMaxChange={(v) => update("fwdPeMax", v)}
         />
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <RangeInput
-          label="PEG Ratio"
-          minVal={filters.pegMin}
-          maxVal={filters.pegMax}
-          onMinChange={(v) => update("pegMin", v)}
-          onMaxChange={(v) => update("pegMax", v)}
-        />
-        <div />
-      </div>
       {hasActiveFilters && (
         <button
           onClick={() => onChange(EMPTY_FILTERS)}

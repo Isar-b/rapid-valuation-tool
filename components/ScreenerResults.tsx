@@ -4,7 +4,7 @@ import { useState } from "react";
 import { type ScreenerResult } from "@/hooks/useScreener";
 import { fmt } from "@/lib/format";
 
-type SortKey = "symbol" | "currentPrice" | "marketCap" | "trailingPE" | "forwardPE" | "pegRatio";
+type SortKey = "symbol" | "currentPrice" | "marketCap" | "trailingPE" | "forwardPE";
 
 interface ScreenerResultsProps {
   results: ScreenerResult[];
@@ -67,7 +67,6 @@ export function ScreenerResultsTable({
     { key: "marketCap", label: "Mkt Cap", align: "right" },
     { key: "trailingPE", label: "PE", align: "right" },
     { key: "forwardPE", label: "Fwd PE", align: "right" },
-    { key: "pegRatio", label: "PEG", align: "right" },
   ];
 
   return (
@@ -117,9 +116,6 @@ export function ScreenerResultsTable({
                 </td>
                 <td className="py-1 px-1.5 text-right border-b border-border/50">
                   {fmt(row.forwardPE, { ratio: true })}
-                </td>
-                <td className="py-1 px-1.5 text-right border-b border-border/50">
-                  {fmt(row.pegRatio, { ratio: true })}
                 </td>
                 <td className="py-1 px-1 text-right border-b border-border/50">
                   <button

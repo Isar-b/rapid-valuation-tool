@@ -53,21 +53,31 @@ export function PeerDotPlot({ data, selectedSymbol, label }: PeerDotPlotProps) {
             width={0}
           />
           <Tooltip
-            contentStyle={{
-              backgroundColor: "#252a42",
-              border: "1px solid #4a5178",
-              borderRadius: "6px",
-              fontSize: "12px",
-              color: "#f1f5f9",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
-            }}
-            itemStyle={{ color: "#a3acc2" }}
-            labelStyle={{ color: "#f1f5f9", fontWeight: 600 }}
             cursor={{ stroke: "#4a5178", strokeDasharray: "3 3" }}
-            formatter={(value) => [fmt(value as number, { ratio: true }), label]}
-            labelFormatter={(_, payload) =>
-              payload?.[0]?.payload?.symbol || ""
-            }
+            content={({ active, payload }) => {
+              if (!active || !payload || payload.length === 0) return null;
+              const item = payload[0].payload as {
+                symbol: string;
+                x: number;
+              };
+              return (
+                <div
+                  className="rounded-md px-2.5 py-1.5 text-xs"
+                  style={{
+                    backgroundColor: "#252a42",
+                    border: "1px solid #4a5178",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+                  }}
+                >
+                  <div className="font-semibold text-text-primary mb-0.5">
+                    {item.symbol}
+                  </div>
+                  <div className="text-text-secondary">
+                    {label}: {fmt(item.x, { ratio: true })}
+                  </div>
+                </div>
+              );
+            }}
           />
           <Scatter data={chartData} fill="#2a2e45">
             {chartData.map((entry) => (

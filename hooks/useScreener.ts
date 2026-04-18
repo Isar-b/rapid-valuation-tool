@@ -23,8 +23,6 @@ export interface ScreenerFilters {
   peMax: string;
   fwdPeMin: string;
   fwdPeMax: string;
-  pegMin: string;
-  pegMax: string;
   mcapBand: string;
 }
 
@@ -34,8 +32,6 @@ export const EMPTY_FILTERS: ScreenerFilters = {
   peMax: "",
   fwdPeMin: "",
   fwdPeMax: "",
-  pegMin: "",
-  pegMax: "",
   mcapBand: "",
 };
 
@@ -52,8 +48,6 @@ export function useScreener(filters: ScreenerFilters) {
     if (filters.peMax) params.set("peMax", filters.peMax);
     if (filters.fwdPeMin) params.set("fwdPeMin", filters.fwdPeMin);
     if (filters.fwdPeMax) params.set("fwdPeMax", filters.fwdPeMax);
-    if (filters.pegMin) params.set("pegMin", filters.pegMin);
-    if (filters.pegMax) params.set("pegMax", filters.pegMax);
     if (filters.mcapBand) params.set("mcapBand", filters.mcapBand);
 
     try {

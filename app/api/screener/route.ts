@@ -19,8 +19,6 @@ export async function GET(request: NextRequest) {
   const peMax = parseFloat(request.nextUrl.searchParams.get("peMax") || "") || null;
   const fwdPeMin = parseFloat(request.nextUrl.searchParams.get("fwdPeMin") || "") || null;
   const fwdPeMax = parseFloat(request.nextUrl.searchParams.get("fwdPeMax") || "") || null;
-  const pegMin = parseFloat(request.nextUrl.searchParams.get("pegMin") || "") || null;
-  const pegMax = parseFloat(request.nextUrl.searchParams.get("pegMax") || "") || null;
   const mcapBand = request.nextUrl.searchParams.get("mcapBand") || null;
 
   const cacheKey = "screener:universe";
@@ -28,7 +26,6 @@ export async function GET(request: NextRequest) {
 
   if (!universe) {
     try {
-      // Fetch from multiple predefined screeners to build a diverse universe
       const results = await Promise.allSettled(
         SCREENER_IDS.map((id) =>
           yf.screener({ scrIds: id, count: 50 }, undefined, { validateResult: false })
@@ -55,7 +52,7 @@ export async function GET(request: NextRequest) {
         marketCap: (q.marketCap as number) ?? null,
         trailingPE: (q.trailingPE as number) ?? null,
         forwardPE: (q.forwardPE as number) ?? null,
-        pegRatio: (q.pegRatio as number) ?? null,
+        pegRatio: null, // not available in Yahoo screener data
         dividendYield: (q.dividendYield as number) ?? null,
         revenueGrowth: (q.revenueGrowth as number) ?? null,
         epsGrowth: (q.earningsQuarterlyGrowth as number) ?? null,
@@ -69,7 +66,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Apply filters
   let filtered = universe;
 
   if (sector) {
@@ -95,16 +91,6 @@ export async function GET(request: NextRequest) {
   if (fwdPeMax != null) {
     filtered = filtered.filter(
       (s) => s.forwardPE != null && (s.forwardPE as number) <= fwdPeMax
-    );
-  }
-  if (pegMin != null) {
-    filtered = filtered.filter(
-      (s) => s.pegRatio != null && (s.pegRatio as number) >= pegMin
-    );
-  }
-  if (pegMax != null) {
-    filtered = filtered.filter(
-      (s) => s.pegRatio != null && (s.pegRatio as number) <= pegMax
     );
   }
   if (mcapBand) {
