@@ -27,14 +27,15 @@ export function IntrinsicValuePanel() {
       ? trailingFCF / trailingRevenue
       : null;
 
-  // Historical FCF CAGR
+  // 3-year FCF CAGR (most recent 4 points = 3 growth periods)
   const historicalGrowth = useMemo(() => {
     const fcfHistory = fundamentals?.annualFCF;
     if (!fcfHistory || fcfHistory.length < 2) return null;
-    const first = fcfHistory[0].freeCashFlow;
-    const last = fcfHistory[fcfHistory.length - 1].freeCashFlow;
+    const recent = fcfHistory.slice(-4);
+    const first = recent[0].freeCashFlow;
+    const last = recent[recent.length - 1].freeCashFlow;
     if (first <= 0 || last <= 0) return null;
-    const years = fcfHistory.length - 1;
+    const years = recent.length - 1;
     return Math.pow(last / first, 1 / years) - 1;
   }, [fundamentals?.annualFCF]);
 
@@ -174,7 +175,7 @@ export function IntrinsicValuePanel() {
             </div>
             {reverseResult?.converged && historicalGrowth != null && (
               <div className="text-sm text-text-secondary mt-1">
-                vs {fmt(historicalGrowth, { pct: true })} historical FCF CAGR
+                vs {fmt(historicalGrowth, { pct: true })} 3Y FCF CAGR
               </div>
             )}
           </div>
