@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useAppState } from "@/state/AppStateContext";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useAppState, type Scenario } from "@/state/AppStateContext";
 import { useQuote } from "@/hooks/useQuote";
 import { useFundamentals } from "@/hooks/useFundamentals";
 import { reverseDCF, forwardDCF, sensitivityMatrix, calculateWACC } from "@/lib/dcf";
@@ -9,7 +9,16 @@ import { SensitivityTable } from "@/components/SensitivityTable";
 import { fmt } from "@/lib/format";
 
 export function IntrinsicValuePanel() {
-  const { selectedSymbol, dcfInputs, setDcfInputs } = useAppState();
+  const {
+    selectedSymbol,
+    dcfInputs,
+    setDcfInputs,
+    resetDcfInputs,
+    scenarios,
+    saveScenario,
+    loadScenario,
+    deleteScenario,
+  } = useAppState();
   const { data: quote, loading: quoteLoading } = useQuote(selectedSymbol);
   const { data: fundamentals, loading: fundLoading } = useFundamentals(selectedSymbol);
   const [mode, setMode] = useState<"reverse" | "forward">("reverse");
@@ -132,10 +141,44 @@ export function IntrinsicValuePanel() {
 
   const canCompute = trailingFCF != null && trailingFCF > 0;
 
+  const savedScenarios = selectedSymbol ? scenarios[selectedSymbol] || [] : [];
+
+  function handleSaveScenario() {
+    if (!selectedSymbol) return;
+    const name = window.prompt("Scenario name (e.g. 'Bear case', 'Base case'):");
+    if (name && name.trim()) {
+      saveScenario(selectedSymbol, name.trim());
+    }
+  }
+
   return (
     <div>
-      {/* Mode toggle */}
-      <div className="flex items-center justify-end mb-4">
+      {/* Toolbar: scenarios + mode toggle */}
+      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={resetDcfInputs}
+            className="px-2.5 py-1 text-xs font-medium text-text-secondary hover:text-text-primary bg-bg-card hover:bg-bg-card-hover border border-border rounded transition-colors"
+            title="Reset all inputs to defaults"
+          >
+            Revert
+          </button>
+          <button
+            onClick={handleSaveScenario}
+            disabled={!selectedSymbol}
+            className="px-2.5 py-1 text-xs font-medium text-text-secondary hover:text-text-primary bg-bg-card hover:bg-bg-card-hover border border-border rounded transition-colors disabled:opacity-40"
+            title="Save current inputs as a named scenario"
+          >
+            Save scenario
+          </button>
+          {savedScenarios.length > 0 && (
+            <ScenarioDropdown
+              scenarios={savedScenarios}
+              onLoad={(name) => loadScenario(selectedSymbol!, name)}
+              onDelete={(name) => deleteScenario(selectedSymbol!, name)}
+            />
+          )}
+        </div>
         <div className="flex bg-bg-card rounded border border-border">
           <button
             onClick={() => setMode("reverse")}
@@ -393,6 +436,67 @@ function InputField({
           <span className="pr-2 text-xs text-text-secondary">{suffix}</span>
         )}
       </div>
+    </div>
+  );
+}
+
+function ScenarioDropdown({
+  scenarios,
+  onLoad,
+  onDelete,
+}: {
+  scenarios: Scenario[];
+  onLoad: (name: string) => void;
+  onDelete: (name: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="px-2.5 py-1 text-xs font-medium text-text-secondary hover:text-text-primary bg-bg-card hover:bg-bg-card-hover border border-border rounded transition-colors"
+      >
+        Scenarios ({scenarios.length}) {open ? "v" : ">"}
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 min-w-[200px] bg-bg-card border border-border rounded shadow-lg z-50 py-1">
+          {scenarios.map((s) => (
+            <div
+              key={s.name}
+              className="flex items-center justify-between px-2 py-1 hover:bg-bg-card-hover group"
+            >
+              <button
+                onClick={() => {
+                  onLoad(s.name);
+                  setOpen(false);
+                }}
+                className="flex-1 text-left text-xs text-text-primary"
+              >
+                {s.name}
+              </button>
+              <button
+                onClick={() => onDelete(s.name)}
+                className="ml-2 text-xs text-text-secondary opacity-0 group-hover:opacity-100 hover:text-red transition-opacity"
+                title="Delete scenario"
+              >
+                x
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

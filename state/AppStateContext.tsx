@@ -18,6 +18,18 @@ export interface DCFInputs {
   fcfMarginOverride: number | null;
 }
 
+export interface Scenario {
+  name: string;
+  inputs: DCFInputs;
+  savedAt: number;
+}
+
+export const DEFAULT_DCF_INPUTS: DCFInputs = {
+  ...DCF_DEFAULTS,
+  fcfGrowthOverride: null,
+  fcfMarginOverride: null,
+};
+
 interface AppState {
   selectedSymbol: string | null;
   setSelectedSymbol: (symbol: string) => void;
@@ -30,6 +42,11 @@ interface AppState {
   setPeers: (symbols: string[]) => void;
   dcfInputs: DCFInputs;
   setDcfInputs: (inputs: Partial<DCFInputs>) => void;
+  resetDcfInputs: () => void;
+  scenarios: Record<string, Scenario[]>;
+  saveScenario: (symbol: string, name: string) => void;
+  loadScenario: (symbol: string, name: string) => void;
+  deleteScenario: (symbol: string, name: string) => void;
   assetPanelTab: "my-assets" | "screener";
   setAssetPanelTab: (tab: "my-assets" | "screener") => void;
 }
@@ -38,37 +55,33 @@ const AppStateContext = createContext<AppState | null>(null);
 
 const STORAGE_KEY = "rvt-state";
 
-function loadFromStorage(): {
+interface PersistedState {
   selectedSymbol: string | null;
   dcfInputs: DCFInputs;
-} {
-  if (typeof window === "undefined") {
-    return {
-      selectedSymbol: null,
-      dcfInputs: { ...DCF_DEFAULTS, fcfGrowthOverride: null, fcfMarginOverride: null },
-    };
-  }
+  scenarios: Record<string, Scenario[]>;
+}
+
+function loadFromStorage(): PersistedState {
+  const fallback: PersistedState = {
+    selectedSymbol: null,
+    dcfInputs: DEFAULT_DCF_INPUTS,
+    scenarios: {},
+  };
+  if (typeof window === "undefined") return fallback;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
         selectedSymbol: parsed.selectedSymbol ?? null,
-        dcfInputs: {
-          ...DCF_DEFAULTS,
-          fcfGrowthOverride: null,
-          fcfMarginOverride: null,
-          ...parsed.dcfInputs,
-        },
+        dcfInputs: { ...DEFAULT_DCF_INPUTS, ...parsed.dcfInputs },
+        scenarios: parsed.scenarios ?? {},
       };
     }
   } catch {
     // ignore parse errors
   }
-  return {
-    selectedSymbol: null,
-    dcfInputs: { ...DCF_DEFAULTS, fcfGrowthOverride: null, fcfMarginOverride: null },
-  };
+  return fallback;
 }
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
@@ -76,39 +89,34 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [selectedSymbol, setSelectedSymbolRaw] = useState<string | null>(null);
   const [assets, setAssets] = useState<Asset[]>(DEFAULT_ASSETS);
   const [peers, setPeersRaw] = useState<string[]>([]);
-  const [dcfInputs, setDcfInputsRaw] = useState<DCFInputs>({
-    ...DCF_DEFAULTS,
-    fcfGrowthOverride: null,
-    fcfMarginOverride: null,
-  });
+  const [dcfInputs, setDcfInputsRaw] = useState<DCFInputs>(DEFAULT_DCF_INPUTS);
+  const [scenarios, setScenarios] = useState<Record<string, Scenario[]>>({});
   const [assetPanelTab, setAssetPanelTab] = useState<"my-assets" | "screener">(
     "my-assets"
   );
 
-  // Load persisted state on mount
   useEffect(() => {
     const stored = loadFromStorage();
     if (stored.selectedSymbol) setSelectedSymbolRaw(stored.selectedSymbol);
     setDcfInputsRaw(stored.dcfInputs);
+    setScenarios(stored.scenarios);
     setInitialized(true);
   }, []);
 
-  // Persist to localStorage
   useEffect(() => {
     if (!initialized) return;
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ selectedSymbol, dcfInputs })
+        JSON.stringify({ selectedSymbol, dcfInputs, scenarios })
       );
     } catch {
       // ignore quota errors
     }
-  }, [selectedSymbol, dcfInputs, initialized]);
+  }, [selectedSymbol, dcfInputs, scenarios, initialized]);
 
   const setSelectedSymbol = useCallback((symbol: string) => {
     setSelectedSymbolRaw(symbol);
-    // Reset DCF overrides when changing asset
     setDcfInputsRaw((prev) => ({
       ...prev,
       fcfGrowthOverride: null,
@@ -146,6 +154,50 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setDcfInputsRaw((prev) => ({ ...prev, ...inputs }));
   }, []);
 
+  const resetDcfInputs = useCallback(() => {
+    setDcfInputsRaw(DEFAULT_DCF_INPUTS);
+  }, []);
+
+  const saveScenario = useCallback(
+    (symbol: string, name: string) => {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      setScenarios((prev) => {
+        const existing = prev[symbol] || [];
+        const withoutDupe = existing.filter((s) => s.name !== trimmed);
+        return {
+          ...prev,
+          [symbol]: [
+            ...withoutDupe,
+            { name: trimmed, inputs: dcfInputs, savedAt: Date.now() },
+          ],
+        };
+      });
+    },
+    [dcfInputs]
+  );
+
+  const loadScenario = useCallback(
+    (symbol: string, name: string) => {
+      const list = scenarios[symbol] || [];
+      const match = list.find((s) => s.name === name);
+      if (match) {
+        setDcfInputsRaw(match.inputs);
+      }
+    },
+    [scenarios]
+  );
+
+  const deleteScenario = useCallback((symbol: string, name: string) => {
+    setScenarios((prev) => {
+      const existing = prev[symbol] || [];
+      return {
+        ...prev,
+        [symbol]: existing.filter((s) => s.name !== name),
+      };
+    });
+  }, []);
+
   return (
     <AppStateContext.Provider
       value={{
@@ -160,6 +212,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         setPeers,
         dcfInputs,
         setDcfInputs,
+        resetDcfInputs,
+        scenarios,
+        saveScenario,
+        loadScenario,
+        deleteScenario,
         assetPanelTab,
         setAssetPanelTab,
       }}
