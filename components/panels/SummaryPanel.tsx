@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef, useCallback } from "react";
 import { useAppState } from "@/state/AppStateContext";
 import { useQuote } from "@/hooks/useQuote";
 import { useFundamentals } from "@/hooks/useFundamentals";
@@ -14,6 +14,7 @@ export function SummaryPanel() {
   const { data: fundamentals } = useFundamentals(selectedSymbol);
   const { data: peerData } = usePeers(peers);
   const { summary, disclaimer, loading, error, generate } = useSummary();
+  const lastGeneratedSymbol = useRef<string | null>(null);
 
   const reverseResult = useMemo(() => {
     if (!quote?.marketCap || !fundamentals?.trailingFCF) return null;
@@ -26,7 +27,8 @@ export function SummaryPanel() {
     );
   }, [quote?.marketCap, fundamentals?.trailingFCF, dcfInputs]);
 
-  const effectiveGrowthRate = dcfInputs.fcfGrowthOverride ?? reverseResult?.impliedGrowthRate ?? 0.05;
+  const effectiveGrowthRate =
+    dcfInputs.fcfGrowthOverride ?? reverseResult?.impliedGrowthRate ?? 0.05;
 
   const forwardResult = useMemo(() => {
     if (
@@ -46,7 +48,7 @@ export function SummaryPanel() {
     );
   }, [fundamentals?.trailingFCF, effectiveGrowthRate, dcfInputs, quote]);
 
-  function handleGenerate() {
+  const handleGenerate = useCallback(() => {
     if (!quote) return;
     generate({
       symbol: quote.symbol,
@@ -94,7 +96,17 @@ export function SummaryPanel() {
         })),
       ],
     });
-  }
+  }, [quote, fundamentals, reverseResult, forwardResult, peerData, generate]);
+
+  // Auto-generate when asset changes and all data is loaded
+  useEffect(() => {
+    if (!selectedSymbol) return;
+    if (!quote || !fundamentals) return;
+    if (lastGeneratedSymbol.current === selectedSymbol) return;
+
+    lastGeneratedSymbol.current = selectedSymbol;
+    handleGenerate();
+  }, [selectedSymbol, quote, fundamentals, handleGenerate]);
 
   return (
     <div>
@@ -104,7 +116,11 @@ export function SummaryPanel() {
           disabled={loading || !quote}
           className="px-3 py-1.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-xs font-medium rounded transition-colors"
         >
-          {loading ? "Generating..." : "Generate Summary"}
+          {loading
+            ? "Generating..."
+            : summary
+              ? "Regenerate"
+              : "Generate Summary"}
         </button>
       </div>
 
@@ -114,13 +130,22 @@ export function SummaryPanel() {
         </div>
       )}
 
-      {summary && (
-        <div className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap mb-3">
-          {summary}
+      {loading && !summary && (
+        <div className="space-y-2">
+          <div className="h-3 bg-bg-card rounded w-3/4 animate-pulse" />
+          <div className="h-3 bg-bg-card rounded w-full animate-pulse" />
+          <div className="h-3 bg-bg-card rounded w-5/6 animate-pulse" />
+          <div className="h-3 bg-bg-card rounded w-2/3 animate-pulse" />
         </div>
       )}
 
-      {disclaimer && (
+      {summary && (
+        <div className="text-sm text-text-primary leading-relaxed mb-3">
+          <FormattedSummary text={summary} />
+        </div>
+      )}
+
+      {disclaimer && summary && (
         <div className="text-xs text-text-secondary italic border-t border-border pt-2">
           {disclaimer}
         </div>
@@ -128,9 +153,35 @@ export function SummaryPanel() {
 
       {!summary && !loading && !error && (
         <div className="text-text-secondary text-xs">
-          Click &quot;Generate Summary&quot; to get an AI-powered valuation analysis
+          Select an asset to get an AI-powered valuation analysis
         </div>
       )}
+    </div>
+  );
+}
+
+function FormattedSummary({ text }: { text: string }) {
+  // Render **bold** as section headers on their own line, regular text otherwise
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <div className="space-y-1">
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return (
+            <div
+              key={i}
+              className="text-text-primary font-semibold text-xs uppercase tracking-wide text-accent mt-3 first:mt-0"
+            >
+              {part.slice(2, -2)}
+            </div>
+          );
+        }
+        return (
+          <span key={i} className="whitespace-pre-wrap">
+            {part}
+          </span>
+        );
+      })}
     </div>
   );
 }
