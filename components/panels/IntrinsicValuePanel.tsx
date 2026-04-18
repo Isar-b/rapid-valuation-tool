@@ -27,17 +27,23 @@ export function IntrinsicValuePanel() {
       ? trailingFCF / trailingRevenue
       : null;
 
-  // 3-year FCF CAGR (most recent 4 points = 3 growth periods)
+  // 3-year FCF CAGR from the oldest annual in the 3Y window → trailing FCF (TTM).
+  // Uses trailingFCF as the endpoint because that's what the DCF projects from,
+  // so this is a like-for-like comparison against the implied forward growth rate.
   const historicalGrowth = useMemo(() => {
     const fcfHistory = fundamentals?.annualFCF;
-    if (!fcfHistory || fcfHistory.length < 2) return null;
+    const trailing = fundamentals?.trailingFCF;
+    if (!fcfHistory || fcfHistory.length < 1 || trailing == null || trailing <= 0)
+      return null;
     const recent = fcfHistory.slice(-4);
-    const first = recent[0].freeCashFlow;
-    const last = recent[recent.length - 1].freeCashFlow;
-    if (first <= 0 || last <= 0) return null;
-    const years = recent.length - 1;
-    return Math.pow(last / first, 1 / years) - 1;
-  }, [fundamentals?.annualFCF]);
+    const start = recent[0];
+    if (!start || start.freeCashFlow <= 0) return null;
+    const years =
+      (Date.now() - new Date(start.date).getTime()) /
+      (365.25 * 24 * 3600 * 1000);
+    if (years < 1) return null;
+    return Math.pow(trailing / start.freeCashFlow, 1 / years) - 1;
+  }, [fundamentals?.annualFCF, fundamentals?.trailingFCF]);
 
   // 3-year earnings (net income) CAGR
   const earningsGrowth3Y = useMemo(() => {
