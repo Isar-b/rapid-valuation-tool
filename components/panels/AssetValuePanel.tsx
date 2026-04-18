@@ -56,8 +56,6 @@ export function AssetValuePanel() {
 
   return (
     <div>
-      <h2 className="text-base font-semibold mb-3">Asset Value</h2>
-
       {/* Dot plot */}
       {selectedSymbol && (
         <PeerDotPlot

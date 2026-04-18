@@ -12,6 +12,7 @@ import { ComparativeValuePanel } from "@/components/panels/ComparativeValuePanel
 import { AssetValuePanel } from "@/components/panels/AssetValuePanel";
 import { SummaryPanel } from "@/components/panels/SummaryPanel";
 import { ExportDialog } from "@/components/ExportDialog";
+import { CollapsiblePanel } from "@/components/CollapsiblePanel";
 
 export function ValuationApp() {
   const { selectedSymbol, dcfInputs, peers } = useAppState();
@@ -50,9 +51,9 @@ export function ValuationApp() {
   }, [fundamentals?.trailingFCF, effectiveGrowthRate, dcfInputs, quote]);
 
   return (
-    <div className="h-screen flex">
+    <div className="h-screen flex bg-bg-primary">
       {/* Left sidebar - Asset Panel */}
-      <div className="w-[280px] min-w-[280px] border-r border-border bg-bg-panel flex flex-col">
+      <div className="w-[280px] min-w-[280px] border-r border-border bg-bg-panel flex flex-col shadow-[2px_0_8px_rgba(0,0,0,0.3)]">
         <AssetPanel />
       </div>
 
@@ -70,24 +71,23 @@ export function ValuationApp() {
               </button>
             </div>
 
-            {/* Top row - Intrinsic Value */}
-            <div className="flex-1 min-h-0 border-b border-border overflow-auto p-4">
-              <IntrinsicValuePanel />
-            </div>
+            {/* Side-by-side collapsible panels */}
+            <div className="flex-1 flex overflow-hidden">
+              <CollapsiblePanel title="Intrinsic Value" defaultExpanded flex={3}>
+                <IntrinsicValuePanel />
+              </CollapsiblePanel>
 
-            {/* Bottom row - Comparators side by side */}
-            <div className="flex-1 min-h-0 flex border-b border-border">
-              <div className="flex-[3] border-r border-border overflow-auto p-4">
+              <CollapsiblePanel title="PE Comparators" flex={2}>
                 <ComparativeValuePanel />
-              </div>
-              <div className="flex-[2] overflow-auto p-4">
-                <AssetValuePanel />
-              </div>
-            </div>
+              </CollapsiblePanel>
 
-            {/* Bottom - Summary */}
-            <div className="h-[200px] min-h-[200px] overflow-auto p-4 bg-bg-panel">
-              <SummaryPanel />
+              <CollapsiblePanel title="Asset Value" flex={2}>
+                <AssetValuePanel />
+              </CollapsiblePanel>
+
+              <CollapsiblePanel title="AI Summary" defaultExpanded flex={2}>
+                <SummaryPanel />
+              </CollapsiblePanel>
             </div>
           </>
         ) : (
@@ -102,7 +102,6 @@ export function ValuationApp() {
         )}
       </div>
 
-      {/* Export dialog */}
       <ExportDialog
         isOpen={exportOpen}
         onClose={() => setExportOpen(false)}

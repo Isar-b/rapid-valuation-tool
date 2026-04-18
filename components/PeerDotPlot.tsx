@@ -54,12 +54,16 @@ export function PeerDotPlot({ data, selectedSymbol, label }: PeerDotPlotProps) {
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#232740",
-              border: "1px solid #2a2e45",
-              borderRadius: "4px",
+              backgroundColor: "#252a42",
+              border: "1px solid #4a5178",
+              borderRadius: "6px",
               fontSize: "12px",
-              color: "#e2e8f0",
+              color: "#f1f5f9",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
             }}
+            itemStyle={{ color: "#a3acc2" }}
+            labelStyle={{ color: "#f1f5f9", fontWeight: 600 }}
+            cursor={{ stroke: "#4a5178", strokeDasharray: "3 3" }}
             formatter={(value) => [fmt(value as number, { ratio: true }), label]}
             labelFormatter={(_, payload) =>
               payload?.[0]?.payload?.symbol || ""

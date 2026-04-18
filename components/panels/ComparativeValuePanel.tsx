@@ -94,8 +94,7 @@ export function ComparativeValuePanel() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold">PE Comparators</h2>
+      <div className="flex items-center justify-end mb-3">
         <div className="flex bg-bg-card rounded border border-border">
           {(["trailingPE", "forwardPE", "pegRatio"] as const).map((m) => (
             <button

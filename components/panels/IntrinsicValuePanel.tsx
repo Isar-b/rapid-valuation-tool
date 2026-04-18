@@ -98,9 +98,8 @@ export function IntrinsicValuePanel() {
 
   return (
     <div>
-      {/* Header + mode toggle */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-semibold">Intrinsic Value</h2>
+      {/* Mode toggle */}
+      <div className="flex items-center justify-end mb-4">
         <div className="flex bg-bg-card rounded border border-border">
           <button
             onClick={() => setMode("reverse")}
